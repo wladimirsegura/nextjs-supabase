@@ -36,10 +36,9 @@ CREATE TABLE players (
 CREATE TABLE game_slots (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   slot_date DATE NOT NULL,
-  start_time TIME NOT NULL,
-  end_time TIME NOT NULL,
+  start_time TIME,
+  end_time TIME,
   game_id TEXT,
-  max_games INTEGER DEFAULT 3,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
