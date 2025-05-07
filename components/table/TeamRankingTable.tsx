@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 
 type TeamStats = {
 	id: string;
@@ -19,6 +19,7 @@ type Team = {
 	stats: TeamStats | null;
 	id: string;
 	name: string;
+	abbreviation?: string;
 };
 
 type TeamRankingTableProps = {
@@ -26,6 +27,18 @@ type TeamRankingTableProps = {
 };
 
 export default function TeamRankingTable({ teams }: TeamRankingTableProps) {
+	const isMobile =
+		typeof window !== "undefined" ? window.innerWidth <= 640 : false;
+	const [isNarrowScreen, setIsNarrowScreen] = useState(isMobile);
+
+	useEffect(() => {
+		const handleResize = () => {
+			setIsNarrowScreen(window.innerWidth <= 640);
+		};
+
+		window.addEventListener("resize", handleResize);
+		return () => window.removeEventListener("resize", handleResize);
+	}, []);
 	const sortedTeams = useMemo(() => {
 		return [...teams].sort((a, b) => {
 			// Ensure both teams have stats
@@ -67,20 +80,20 @@ export default function TeamRankingTable({ teams }: TeamRankingTableProps) {
 	}, [teams]);
 
 	return (
-		<div className="overflow-x-auto">
-			<table className="w-full">
+		<div className="overflow-x-auto rounded-lg border border-[hsl(var(--table-border))]">
+			<table className="w-full min-w-[390px] text-sm md:text-base">
 				<thead>
-					<tr className="bg-gray-700">
-						<th className="p-2 text-center">Pos</th>
-						<th className="p-2 text-left">Team</th>
-						<th className="p-2 text-center">GP</th>
-						<th className="p-2 text-center">W</th>
-						<th className="p-2 text-center">L</th>
-						<th className="p-2 text-center">T</th>
-						<th className="p-2 text-center">GF</th>
-						<th className="p-2 text-center">GA</th>
-						<th className="p-2 text-center">GD</th>
-						<th className="p-2 text-center">Pts</th>
+					<tr className="bg-[hsl(var(--table-header))] text-[hsl(var(--foreground))]">
+						<th className="p-1 md:p-2 text-center">#</th>
+						<th className="p-1 md:p-2 text-left">Team</th>
+						<th className="p-1 md:p-2 text-center">GP</th>
+						<th className="p-1 md:p-2 text-center">W</th>
+						<th className="p-1 md:p-2 text-center">L</th>
+						<th className="p-1 md:p-2 text-center">T</th>
+						<th className="p-1 md:p-2 text-center">GF</th>
+						<th className="p-1 md:p-2 text-center">GA</th>
+						<th className="p-1 md:p-2 text-center">GD</th>
+						<th className="p-1 md:p-2 text-center">Pts</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -97,17 +110,24 @@ export default function TeamRankingTable({ teams }: TeamRankingTableProps) {
 						const gd = stats.goals_for - stats.goals_against;
 
 						return (
-							<tr key={team.id} className="border-t">
-								<td className="p-2 text-center">{index + 1}</td>
-								<td className="p-2">{team.name}</td>
-								<td className="p-2 text-center">{stats.games_played}</td>
-								<td className="p-2 text-center">{stats.wins}</td>
-								<td className="p-2 text-center">{stats.losses}</td>
-								<td className="p-2 text-center">{stats.ties}</td>
-								<td className="p-2 text-center">{stats.goals_for}</td>
-								<td className="p-2 text-center">{stats.goals_against}</td>
-								<td className="p-2 text-center">{gd}</td>
-								<td className="p-2 text-center">{stats.points}</td>
+							<tr
+								key={team.id}
+								className="border-t border-[hsl(var(--table-border))] hover:bg-[hsl(var(--table-row-hover))] transition-colors"
+							>
+								<td className="p-1 md:p-2 text-center text-sm md:text-base">{index + 1}</td>
+								<td className="p-1 md:p-2 font-medium">
+									{isNarrowScreen && team.abbreviation
+										? team.abbreviation
+										: team.name}
+								</td>
+								<td className="p-1 md:p-2 text-center">{stats.games_played}</td>
+								<td className="p-1 md:p-2 text-center">{stats.wins}</td>
+								<td className="p-1 md:p-2 text-center">{stats.losses}</td>
+								<td className="p-1 md:p-2 text-center">{stats.ties}</td>
+								<td className="p-1 md:p-2 text-center">{stats.goals_for}</td>
+								<td className="p-1 md:p-2 text-center">{stats.goals_against}</td>
+								<td className="p-1 md:p-2 text-center">{gd}</td>
+								<td className="p-1 md:p-2 text-center font-semibold">{stats.points}</td>
 							</tr>
 						);
 					})}
