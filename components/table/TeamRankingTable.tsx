@@ -114,7 +114,9 @@ export default function TeamRankingTable({ teams }: TeamRankingTableProps) {
 								key={team.id}
 								className="border-t border-[hsl(var(--table-border))] hover:bg-[hsl(var(--table-row-hover))] transition-colors"
 							>
-								<td className="p-1 md:p-2 text-center text-sm md:text-base">{index + 1}</td>
+								<td className="p-1 md:p-2 text-center text-sm md:text-base">
+									{index + 1}
+								</td>
 								<td className="p-1 md:p-2 font-medium">
 									{isNarrowScreen && team.abbreviation
 										? team.abbreviation
@@ -125,9 +127,13 @@ export default function TeamRankingTable({ teams }: TeamRankingTableProps) {
 								<td className="p-1 md:p-2 text-center">{stats.losses}</td>
 								<td className="p-1 md:p-2 text-center">{stats.ties}</td>
 								<td className="p-1 md:p-2 text-center">{stats.goals_for}</td>
-								<td className="p-1 md:p-2 text-center">{stats.goals_against}</td>
+								<td className="p-1 md:p-2 text-center">
+									{stats.goals_against}
+								</td>
 								<td className="p-1 md:p-2 text-center">{gd}</td>
-								<td className="p-1 md:p-2 text-center font-semibold">{stats.points}</td>
+								<td className="p-1 md:p-2 text-center font-semibold">
+									{stats.points}
+								</td>
 							</tr>
 						);
 					})}

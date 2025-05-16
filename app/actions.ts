@@ -8,6 +8,8 @@ import { redirect } from "next/navigation";
 export const signUpAction = async (formData: FormData) => {
 	const email = formData.get("email")?.toString();
 	const password = formData.get("password")?.toString();
+	const teamId = formData.get("team")?.toString();
+	const jerseyNumber = formData.get("jersey_number")?.toString();
 	const supabase = await createClient();
 	const origin = (await headers()).get("origin");
 
@@ -19,7 +21,10 @@ export const signUpAction = async (formData: FormData) => {
 		);
 	}
 
-	const { error } = await supabase.auth.signUp({
+	const {
+		data: { user },
+		error: signUpError,
+	} = await supabase.auth.signUp({
 		email,
 		password,
 		options: {
@@ -27,16 +32,32 @@ export const signUpAction = async (formData: FormData) => {
 		},
 	});
 
-	if (error) {
-		console.error(error.code + " " + error.message);
-		return encodedRedirect("error", "/sign-up", error.message);
-	} else {
-		return encodedRedirect(
-			"success",
-			"/sign-up",
-			"Thanks for signing up! Please check your email for a verification link."
-		);
+	if (signUpError) {
+		console.error(signUpError.code + " " + signUpError.message);
+		return encodedRedirect("error", "/sign-up", signUpError.message);
 	}
+
+	// If team is selected, create a team request
+	if (teamId && user) {
+		const { error: requestError } = await supabase
+			.from("team_requests")
+			.insert({
+				user_id: user.id,
+				team_id: teamId,
+				jersey_number: jerseyNumber || null,
+				status: "pending",
+			});
+
+		if (requestError) {
+			console.error("Failed to create team request:", requestError);
+		}
+	}
+
+	return encodedRedirect(
+		"success",
+		"/sign-up",
+		"ご登録ありがとうございます！確認リンクが記載されたメールをご確認ください。チーム登録は管理人の承認後に反映されます。"
+	);
 };
 
 export const signInAction = async (formData: FormData) => {
@@ -124,7 +145,7 @@ export const resetPasswordAction = async (formData: FormData) => {
 		);
 	}
 
-	encodedRedirect("success", "/protected/reset-password", "Password updated");
+	encodedRedirect("success", "/protected", "Password updated");
 };
 
 export const signOutAction = async () => {

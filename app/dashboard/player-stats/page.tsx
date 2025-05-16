@@ -32,6 +32,7 @@ type Player = {
 	name: string;
 	team_id: string;
 	stats?: PlayerStats;
+	editing?: boolean;
 };
 
 export default function PlayerStatsManagement() {
@@ -110,6 +111,27 @@ export default function PlayerStatsManagement() {
 		}));
 
 		setPlayers(playersWithStats);
+	}
+
+	async function handlePlayerUpdate(playerId: string, newName: string) {
+		const { error } = await supabase
+			.from("players")
+			.update({ name: newName })
+			.eq("id", playerId);
+
+		if (error) {
+			setError("Failed to update player name");
+			return;
+		}
+
+		// Update local state
+		setPlayers((prevPlayers) =>
+			prevPlayers.map((player) =>
+				player.id === playerId
+					? { ...player, name: newName, editing: false }
+					: player
+			)
+		);
 	}
 
 	async function handleStatsUpdate(
@@ -230,7 +252,67 @@ export default function PlayerStatsManagement() {
 													key={player.id}
 													className={`border-t ${editingStats?.player_id === player.id ? "bg-gray-50/50 dark:bg-gray-800/50" : ""}`}
 												>
-													<td className="p-2">{player.name}</td>
+													<td className="p-2">
+														{player.editing ? (
+															<div className="flex gap-2">
+																<Input
+																	type="text"
+																	value={player.name}
+																	onChange={(e) =>
+																		setPlayers((prevPlayers) =>
+																			prevPlayers.map((p) =>
+																				p.id === player.id
+																					? { ...p, name: e.target.value }
+																					: p
+																			)
+																		)
+																	}
+																/>
+																<Button
+																	onClick={() =>
+																		handlePlayerUpdate(player.id, player.name)
+																	}
+																	size="sm"
+																>
+																	Save
+																</Button>
+																<Button
+																	variant="outline"
+																	onClick={() =>
+																		setPlayers((prevPlayers) =>
+																			prevPlayers.map((p) =>
+																				p.id === player.id
+																					? { ...p, editing: false }
+																					: p
+																			)
+																		)
+																	}
+																	size="sm"
+																>
+																	Cancel
+																</Button>
+															</div>
+														) : (
+															<div className="flex items-center gap-2">
+																<span>{player.name}</span>
+																<Button
+																	variant="ghost"
+																	size="sm"
+																	onClick={() =>
+																		setPlayers((prevPlayers) =>
+																			prevPlayers.map((p) =>
+																				p.id === player.id
+																					? { ...p, editing: true }
+																					: p
+																			)
+																		)
+																	}
+																>
+																	✏️
+																</Button>
+															</div>
+														)}
+													</td>
 													{editingStats?.player_id === player.id ? (
 														<>
 															<td className="p-2">

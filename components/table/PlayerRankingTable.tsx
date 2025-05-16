@@ -98,7 +98,12 @@ export default function PlayerRankingTable({
 								className="border-t border-[hsl(var(--table-border))] hover:bg-[hsl(var(--table-row-hover))] transition-colors"
 							>
 								<td className="p-1 md:p-2 text-center text-sm md:text-base">
-									{index + 1}
+									{index === 0 ||
+									sortedPlayers[index - 1]?.stats?.[sortBy] !== stats[sortBy]
+										? index + 1
+										: sortedPlayers.findIndex(
+												(p) => p.stats?.[sortBy] === stats[sortBy]
+											) + 1}
 								</td>
 								<td className="p-1 md:p-2 font-medium">{player.name}</td>
 								<td className="p-1 md:p-2 text-center">{stats.games_played}</td>

@@ -29,6 +29,7 @@ type Schedule = {
 type Team = {
 	id: string;
 	name: string;
+	abbreviation?: string;
 };
 
 type Season = {
@@ -51,11 +52,13 @@ export default function SchedulesManagement() {
 	});
 
 	const [scheduleFormData, setScheduleFormData] = useState({
+		id: "",
 		slot_id: "",
 		home_team_id: "",
 		away_team_id: "",
 		referee_team_id: "",
 		record_team_id: "",
+		status: "scheduled",
 	});
 
 	const supabase = createClient();
@@ -89,7 +92,7 @@ export default function SchedulesManagement() {
 	async function fetchTeams() {
 		const { data: teams, error } = await supabase
 			.from("teams")
-			.select("id, name")
+			.select("id, name, abbreviation")
 			.order("name");
 
 		if (error) {
@@ -123,8 +126,8 @@ export default function SchedulesManagement() {
         *,
         home_team:teams!home_team_id(name),
         away_team:teams!away_team_id(name),
-        referee_team:teams!referee_team_id(name),
-        record_team:teams!record_team_id(name),
+        referee_team:teams!referee_team_id(name, abbreviation),
+        record_team:teams!record_team_id(name, abbreviation),
         game_slot:game_slots!slot_id(*)
       `
 			)
@@ -169,23 +172,47 @@ export default function SchedulesManagement() {
 
 		const scheduleData = {
 			season_id: selectedSeason,
-			...scheduleFormData,
-			status: "scheduled",
+			slot_id: scheduleFormData.slot_id,
+			home_team_id: scheduleFormData.home_team_id,
+			away_team_id: scheduleFormData.away_team_id,
+			referee_team_id: scheduleFormData.referee_team_id,
+			record_team_id: scheduleFormData.record_team_id,
+			status: scheduleFormData.status,
 		};
 
-		const { error } = await supabase.from("schedule").insert([scheduleData]);
+		let error;
+		if (scheduleFormData.id) {
+			// Update existing schedule
+			const { error: updateError } = await supabase
+				.from("schedule")
+				.update(scheduleData)
+				.eq("id", scheduleFormData.id);
+			error = updateError;
+		} else {
+			// Insert new schedule
+			const { error: insertError } = await supabase
+				.from("schedule")
+				.insert([scheduleData]);
+			error = insertError;
+		}
 
 		if (error) {
-			setError("Failed to create schedule");
+			setError(
+				scheduleFormData.id
+					? "Failed to update schedule"
+					: "Failed to create schedule"
+			);
 			return;
 		}
 
 		setScheduleFormData({
+			id: "",
 			slot_id: "",
 			home_team_id: "",
 			away_team_id: "",
 			referee_team_id: "",
 			record_team_id: "",
+			status: "scheduled",
 		});
 
 		fetchSchedules();
@@ -272,7 +299,7 @@ export default function SchedulesManagement() {
 								<option value="">Select a slot...</option>
 								{gameSlots.map((slot) => (
 									<option key={slot.id} value={slot.id}>
-										{slot.slot_date} - Game ID: {slot.game_id || 'Not assigned'}
+										{slot.slot_date} - Game ID: {slot.game_id || "Not assigned"}
 									</option>
 								))}
 							</select>
@@ -385,6 +412,26 @@ export default function SchedulesManagement() {
 							</select>
 						</div>
 
+						<div className="space-y-2">
+							<Label htmlFor="status">Status</Label>
+							<select
+								id="status"
+								className="w-full p-2 border rounded-md"
+								value={scheduleFormData.status}
+								onChange={(e) =>
+									setScheduleFormData({
+										...scheduleFormData,
+										status: e.target.value as Schedule["status"],
+									})
+								}
+							>
+								<option value="scheduled">Scheduled</option>
+								<option value="in_progress">In Progress</option>
+								<option value="completed">Completed</option>
+								<option value="cancelled">Cancelled</option>
+							</select>
+						</div>
+
 						{error && <p className="text-red-500">{error}</p>}
 
 						<Button type="submit">Schedule Game</Button>
@@ -399,12 +446,13 @@ export default function SchedulesManagement() {
 						<thead>
 							<tr className="bg-gray-600">
 								<th className="px-4 py-2">Date</th>
-								<th className="px-4 py-2">Time</th>
+								<th className="px-3 py-2 w-16">#</th>
 								<th className="px-4 py-2">Home Team</th>
 								<th className="px-4 py-2">Away Team</th>
-								<th className="px-4 py-2">Referee Team</th>
-								<th className="px-4 py-2">Record Team</th>
-								<th className="px-4 py-2">Status</th>
+								<th className="px-3 py-2 w-20">REF</th>
+								<th className="px-3 py-2 w-20">REC</th>
+								<th className="px-3 py-2 w-24">Status</th>
+								<th className="px-3 py-2 w-20">Actions</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -412,19 +460,71 @@ export default function SchedulesManagement() {
 								<tr key={schedule.id} className="border-b">
 									<td className="px-4 py-2">{schedule.game_slot.slot_date}</td>
 									<td className="px-4 py-2">
-										{schedule.game_slot.game_id || 'Not assigned'}
+										{schedule.game_slot.game_id || "Not assigned"}
 									</td>
 									<td className="px-4 py-2">{schedule.home_team.name}</td>
 									<td className="px-4 py-2">{schedule.away_team.name}</td>
-									<td className="px-4 py-2">{schedule.referee_team.name}</td>
-									<td className="px-4 py-2">{schedule.record_team.name}</td>
-									<td className="px-4 py-2">{schedule.status}</td>
+									<td className="px-4 py-2">
+										{schedule.referee_team.abbreviation ||
+											schedule.referee_team.name}
+									</td>
+									<td className="px-4 py-2">
+										{schedule.record_team.abbreviation ||
+											schedule.record_team.name}
+									</td>
+									<td className="px-3 py-2">
+										{schedule.status === "scheduled" && "🕒"}
+										{schedule.status === "in_progress" && "⚽"}
+										{schedule.status === "completed" && "✅"}
+										{schedule.status === "cancelled" && "❌"}
+									</td>
+									{/* <span className="ml-1 text-sm">{schedule.status}</span> */}
+									<td className="px-3 py-2">
+										<Button
+											variant="outline"
+											size="sm"
+											className="w-full"
+											onClick={() => {
+												setScheduleFormData({
+													id: schedule.id,
+													slot_id: schedule.slot_id,
+													home_team_id: schedule.home_team_id,
+													away_team_id: schedule.away_team_id,
+													referee_team_id: schedule.referee_team_id,
+													record_team_id: schedule.record_team_id,
+													status: schedule.status,
+												});
+												window.scrollTo({ top: 0, behavior: "smooth" });
+											}}
+										>
+											✏️ Edit
+										</Button>
+									</td>
 								</tr>
 							))}
 						</tbody>
 					</table>
 				</div>
 			</div>
+			{/* <div className="space-y-2">
+				<Label htmlFor="status">Status</Label>
+				<select
+					id="status"
+					className="w-full p-2 border rounded-md"
+					value={scheduleFormData.status}
+					onChange={(e) =>
+						setScheduleFormData({
+							...scheduleFormData,
+							status: e.target.value as Schedule["status"],
+						})
+					}
+				>
+					<option value="scheduled">Scheduled</option>
+					<option value="in_progress">In Progress</option>
+					<option value="completed">Completed</option>
+					<option value="cancelled">Cancelled</option>
+				</select>
+			</div> */}
 		</div>
 	);
 }

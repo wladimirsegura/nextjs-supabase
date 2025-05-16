@@ -3,6 +3,7 @@ import { createClient } from "@/utils/supabase/server";
 import { InfoIcon } from "lucide-react";
 import { redirect } from "next/navigation";
 import Page from "../notes/page";
+import Link from "next/link";
 
 export default async function ProtectedPage() {
 	const supabase = await createClient();
@@ -27,6 +28,7 @@ export default async function ProtectedPage() {
 				<div>
 					<Page />
 					<h1>TEST PROTECTED hello, {user.email}</h1>
+					<Link href="/protected/profile">プロフィール</Link>
 				</div>
 			</div>
 			<div className="flex flex-col gap-2 items-start">
