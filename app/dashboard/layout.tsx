@@ -9,7 +9,6 @@ const navItems = [
 	{ href: "/dashboard/player-stats", label: "Player Stats", icon: "👤" },
 	{ href: "/dashboard/teams", label: "Teams", icon: "🏃" },
 	{ href: "/dashboard/schedules", label: "Schedules", icon: "📅" },
-	{ href: "/dashboard/team-requests", label: "Team Requests", icon: "📨" },
 ];
 
 export default function DashboardLayout({

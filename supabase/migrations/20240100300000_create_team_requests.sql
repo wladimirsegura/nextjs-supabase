@@ -22,28 +22,15 @@ CREATE INDEX idx_team_requests_team_id ON team_requests(team_id);
 -- Enable Row Level Security
 ALTER TABLE team_requests ENABLE ROW LEVEL SECURITY;
 
--- Create RLS Policies
-CREATE POLICY "Users can view their own requests and team admins can view all"
-    ON team_requests FOR SELECT
-    USING (
-        auth.uid() = user_id OR 
-        coalesce((current_setting('request.jwt.claims', true)::jsonb)->'app_metadata'->('team_' || team_requests.team_id::text || '_admin'), 'false')::bool
-    );
+-- Create RLS Policies aligned with other dashboard features
+CREATE POLICY "Allow public read access" ON team_requests
+    FOR SELECT USING (true);
 
-CREATE POLICY "Users can create their own requests"
-    ON team_requests FOR INSERT
-    WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Allow authenticated write" ON team_requests
+    FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
-CREATE POLICY "Users can update their own requests and team admins can update all"
-    ON team_requests FOR UPDATE
-    USING (
-        auth.uid() = user_id OR 
-        coalesce((current_setting('request.jwt.claims', true)::jsonb)->'app_metadata'->('team_' || team_requests.team_id::text || '_admin'), 'false')::bool
-    );
+CREATE POLICY "Allow authenticated update" ON team_requests
+    FOR UPDATE USING (auth.role() = 'authenticated');
 
-CREATE POLICY "Users can delete their own requests and team admins can delete all"
-    ON team_requests FOR DELETE
-    USING (
-        auth.uid() = user_id OR 
-        coalesce((current_setting('request.jwt.claims', true)::jsonb)->'app_metadata'->('team_' || team_requests.team_id::text || '_admin'), 'false')::bool
-    );
+CREATE POLICY "Allow authenticated delete" ON team_requests
+    FOR DELETE USING (auth.role() = 'authenticated');

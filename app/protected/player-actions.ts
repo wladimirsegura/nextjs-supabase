@@ -20,10 +20,10 @@ export const registerPlayerAction = async (formData: FormData) => {
 
 	const name = formData.get("name") as string;
 	const teamId = formData.get("team_id") as string;
-	const jerseyNumber = formData.get("jersey_number") as string;
+	const number = formData.get("number") as string;
 	const photoUrl = formData.get("photo_url") as string;
 
-	if (!name || !teamId || !jerseyNumber) {
+	if (!name || !teamId || !number) {
 		return encodedRedirect(
 			"error",
 			"/protected/profile",
@@ -31,26 +31,44 @@ export const registerPlayerAction = async (formData: FormData) => {
 		);
 	}
 
-	// Create team request
-	const { error: requestError } = await supabase.from("team_requests").insert({
-		user_id: user.id,
-		team_id: teamId,
-		jersey_number: jerseyNumber,
-		status: "pending",
-	});
+	// Check if number is already taken in the team
+	const { data: existingPlayer } = await supabase
+		.from("players")
+		.select()
+		.eq("team_id", teamId)
+		.eq("number", number)
+		.single();
 
-	if (requestError) {
+	if (existingPlayer) {
 		return encodedRedirect(
 			"error",
 			"/protected/profile",
-			"Failed to submit team request"
+			"This jersey number is already taken in the selected team"
+		);
+	}
+
+	// Create player record with pending status
+	const { error: playerError } = await supabase.from("players").insert({
+		user_id: user.id,
+		team_id: teamId,
+		number: number,
+		name: name,
+		photo_url: photoUrl || null,
+		status: "pending",
+	});
+
+	if (playerError) {
+		return encodedRedirect(
+			"error",
+			"/protected/profile",
+			"Failed to register as player"
 		);
 	}
 
 	return encodedRedirect(
 		"success",
 		"/protected/profile",
-		"Team request submitted successfully"
+		"Player registered successfully"
 	);
 };
 
@@ -70,10 +88,16 @@ export const updatePlayerAction = async (formData: FormData) => {
 	}
 
 	const name = formData.get("name") as string;
+	const teamId = formData.get("team_id") as string;
+	const number = formData.get("number") as string;
 	const photoUrl = formData.get("photo_url") as string;
 
-	if (!name) {
-		return encodedRedirect("error", "/protected/profile", "Name is required");
+	if (!name || !teamId || !number) {
+		return encodedRedirect(
+			"error",
+			"/protected/profile",
+			"Name, team, and jersey number are required"
+		);
 	}
 
 	// Get the player record
@@ -82,6 +106,23 @@ export const updatePlayerAction = async (formData: FormData) => {
 		.select()
 		.eq("user_id", user.id)
 		.single();
+
+	// Check if number is already taken in the team by another player
+	const { data: existingPlayer } = await supabase
+		.from("players")
+		.select()
+		.eq("team_id", teamId)
+		.eq("number", number)
+		.neq("id", player.id)
+		.single();
+
+	if (existingPlayer) {
+		return encodedRedirect(
+			"error",
+			"/protected/profile",
+			"This jersey number is already taken in the selected team"
+		);
+	}
 
 	if (!player) {
 		return encodedRedirect(
@@ -96,6 +137,8 @@ export const updatePlayerAction = async (formData: FormData) => {
 		.from("players")
 		.update({
 			name,
+			team_id: teamId,
+			number,
 			photo_url: photoUrl,
 		})
 		.eq("id", player.id);
@@ -111,6 +154,6 @@ export const updatePlayerAction = async (formData: FormData) => {
 	return encodedRedirect(
 		"success",
 		"/protected/profile",
-		"Player information updated successfully"
+		"Player information and team assignment updated successfully"
 	);
 };
