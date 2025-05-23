@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback } from "react";
 import EditPlayerModal from "./edit-player-modal";
 import { createClient } from "@/utils/supabase/client";
+import { getTeams } from "@/utils/api/teams";
+import { Team } from "@/types/teams";
 
 type Team = {
 	id: string;
@@ -34,17 +36,12 @@ export default function RosterPage() {
 
 	useEffect(() => {
 		async function fetchTeams() {
-			const { data: teamsData, error } = await supabase
-				.from("teams")
-				.select("*")
-				.order("name");
-
-			if (error) {
+			try {
+				const teamsData = await getTeams();
+				setTeams(teamsData);
+			} catch (error) {
 				console.error("Error fetching teams:", error);
-				return;
 			}
-
-			setTeams(teamsData);
 		}
 
 		fetchTeams();
